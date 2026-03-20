@@ -1,5 +1,4 @@
-
-  let userName = "অজয়";
+let userName = "Ajay";
 
 let audioContext, analyser, buffer;
 
@@ -9,7 +8,7 @@ let hasReplied = false;
 
 let pitchList = [];
 
-// 👩 voice setup
+// 👩 female voice setup
 speechSynthesis.onvoiceschanged = () => {
   speechSynthesis.getVoices();
 };
@@ -29,7 +28,7 @@ function speak(text) {
   if (female) msg.voice = female;
 
   msg.pitch = 1.5;
-  msg.lang = "bn-BD";
+  msg.lang = "en-US";  // 🔥 English language
 
   speechSynthesis.speak(msg);
 }
@@ -77,7 +76,7 @@ function loop() {
     isSinging = false;
     hasReplied = true;
 
-    analyze(); // 👉 এখানেই final reply
+    analyze();
     pitchList = [];
   }
 
@@ -144,16 +143,16 @@ function analyze() {
 
   // 🎯 honest judgement
   if (Math.abs(cents) < 20) {
-    reply = "ভালো গেয়েছো 😄 (Note: " + note + ")";
+    reply = "Good singing 😄 (Note: " + note + ")";
   } 
   else if (Math.abs(cents) < 50) {
-    reply = "মোটামুটি... একটু off ছিল 😏";
+    reply = "Not bad... but slightly off 😏";
   } 
   else {
-    reply = "খারাপ হয়েছে 😆 সুর ঠিক ছিল না";
+    reply = "That was bad 😆 your pitch was off";
   }
 
   reply += " | error: " + Math.round(cents) + " cents";
 
   speak(reply);
-}
+    }
