@@ -1,152 +1,159 @@
-let userName = "অজয়";
 
-let audioContext, analyser, dataArray;
+  let userName = "অজয়";
 
-let talking = false;
+let audioContext, analyser, buffer;
+
+let isSinging = false;
 let lastSoundTime = 0;
-let isSpeaking = false;
+let hasReplied = false;
 
-// 👩 Female voice
+let pitchList = [];
+
+// 👩 voice setup
+speechSynthesis.onvoiceschanged = () => {
+  speechSynthesis.getVoices();
+};
+
 function speak(text) {
-  if (talking) return;
+  if (speechSynthesis.speaking) return;
 
   let msg = new SpeechSynthesisUtterance(text);
-
   let voices = speechSynthesis.getVoices();
 
-  let femaleVoice = voices.find(v =>
+  let female = voices.find(v =>
     v.name.toLowerCase().includes("female") ||
-    v.name.toLowerCase().includes("zira") ||
-    v.name.toLowerCase().includes("google")
+    v.name.includes("Google") ||
+    v.name.includes("Zira")
   );
 
-  if (femaleVoice) msg.voice = femaleVoice;
+  if (female) msg.voice = female;
 
-  msg.lang = "bn-BD";
   msg.pitch = 1.5;
-  msg.rate = 1;
-
-  talking = true;
-  msg.onend = () => talking = false;
+  msg.lang = "bn-BD";
 
   speechSynthesis.speak(msg);
 }
 
-// 🎤 Start
+// 🎤 start
 async function start() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
   audioContext = new AudioContext();
+  await audioContext.resume();
+
   analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
 
   let mic = audioContext.createMediaStreamSource(stream);
   mic.connect(analyser);
 
-  analyser.fftSize = 512;
-  dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-  speak(userName + ", শুরু করো... আমি judge করছি 😏");
+  buffer = new Float32Array(analyser.fftSize);
 
   loop();
 }
 
-// ⏹️ Stop
+// ⏹️ stop
 function stop() {
   if (audioContext) audioContext.close();
 }
 
-// 🔁 Loop
+// 🔁 loop
 function loop() {
-  analyser.getByteFrequencyData(dataArray);
+  analyser.getFloatTimeDomainData(buffer);
 
-  let sum = 0;
-  for (let i = 0; i < dataArray.length; i++) {
-    sum += dataArray[i];
-  }
-
-  let avg = sum / dataArray.length;
+  let pitch = detectPitch(buffer, audioContext.sampleRate);
   let now = Date.now();
 
-  // 🎤 detect sound
-  if (avg > 20) {
+  // 🎤 detect singing
+  if (pitch > 0) {
+    pitchList.push(pitch);
     lastSoundTime = now;
-    isSpeaking = true;
+    isSinging = true;
+    hasReplied = false;
   }
 
-  // ⏳ song end detect
-  if (isSpeaking && now - lastSoundTime > 2000) {
-    isSpeaking = false;
-    react(avg);
+  // ⏳ 2 sec silence = song finished
+  if (isSinging && now - lastSoundTime > 2000 && !hasReplied) {
+    isSinging = false;
+    hasReplied = true;
+
+    analyze(); // 👉 এখানেই final reply
+    pitchList = [];
   }
 
   requestAnimationFrame(loop);
 }
 
-// 😂 SAVAGE REACTION
-function react(avg) {
+// 🎵 pitch detect
+function detectPitch(buf, sampleRate) {
+  let SIZE = buf.length;
+  let rms = 0;
+
+  for (let i = 0; i < SIZE; i++) {
+    rms += buf[i] * buf[i];
+  }
+
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return -1;
+
+  let bestOffset = -1;
+  let bestCorrelation = 0;
+
+  for (let offset = 8; offset < 1000; offset++) {
+    let correlation = 0;
+
+    for (let i = 0; i < SIZE - offset; i++) {
+      correlation += buf[i] * buf[i + offset];
+    }
+
+    if (correlation > bestCorrelation) {
+      bestCorrelation = correlation;
+      bestOffset = offset;
+    }
+  }
+
+  if (bestOffset === -1) return -1;
+
+  return sampleRate / bestOffset;
+}
+
+// 🎼 note + accuracy
+function freqToNote(freq) {
+  let A4 = 440;
+  let noteNum = 12 * (Math.log(freq / A4) / Math.log(2));
+  let midi = Math.round(noteNum) + 69;
+
+  let notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  let note = notes[midi % 12];
+
+  let exactFreq = A4 * Math.pow(2, (midi - 69) / 12);
+  let cents = 1200 * Math.log2(freq / exactFreq);
+
+  return { note, cents };
+}
+
+// 📊 analyze (FINAL reply)
+function analyze() {
+  if (pitchList.length < 5) return;
+
+  let avg = pitchList.reduce((a,b)=>a+b,0) / pitchList.length;
+
+  let { note, cents } = freqToNote(avg);
+
   let reply = "";
 
-  if (avg < 20) {
-    let arr = [
-      userName + ", তুমি গাইছিলে নাকি ভাবছিলে? 😆",
-      "আমি কিছুই শুনলাম না... imagination ছিল নাকি? 😂",
-      "এইটা গান না silent mode 😏",
-      "তুমি গাইলে আমি guess করলাম 😅"
-    ];
-    reply = arr[Math.floor(Math.random()*arr.length)];
-  }
-
-  else if (avg < 40) {
-    let arr = [
-      userName + ", honestly... একটু struggle হলো শুনতে 😆",
-      "এইটা গান ছিলো... না test? 😏",
-      "practice দরকার... urgent 😄",
-      "কাকও চিন্তা করছে competition দিবে 🐦😂",
-      "confidence বেশি, skill একটু কম 😆"
-    ];
-    reply = arr[Math.floor(Math.random()*arr.length)];
-  }
-
+  // 🎯 honest judgement
+  if (Math.abs(cents) < 20) {
+    reply = "ভালো গেয়েছো 😄 (Note: " + note + ")";
+  } 
+  else if (Math.abs(cents) < 50) {
+    reply = "মোটামুটি... একটু off ছিল 😏";
+  } 
   else {
-    let arr = [
-      "ওহ! আজ একটু impress করলে 🔥",
-      "এইটা ভালোই ছিল 😄",
-      "চালিয়ে যাও, improve হচ্ছে 👌",
-      "আজ singer vibe আসছে 😏",
-      "এইটা ঠিক ছিল... finally 😆"
-    ];
-    reply = arr[Math.floor(Math.random()*arr.length)];
+    reply = "খারাপ হয়েছে 😆 সুর ঠিক ছিল না";
   }
+
+  reply += " | error: " + Math.round(cents) + " cents";
 
   speak(reply);
 }
-
-// 💬 Chat
-function chat() {
-  let input = document.getElementById("input").value.toLowerCase();
-  let reply = "";
-
-  if (input.includes("hello")) {
-    reply = userName + ", হ্যালো 😄";
-  } 
-  else if (input.includes("song")) {
-    reply = "গাও দেখি... আমি ready 😏";
-  }
-  else if (input.includes("kemon")) {
-    reply = "তুমি চেষ্টা করছো... সেটাই বড় কথা 😆";
-  }
-  else {
-    let arr = [
-      "তুমি আজ interesting 😏",
-      "আমি judge করছি 😄",
-      "চালিয়ে যাও... surprise দাও 🔥"
-    ];
-    reply = arr[Math.floor(Math.random()*arr.length)];
-  }
-
-  let box = document.getElementById("chatBox");
-  box.innerHTML += `<p>🧑 ${input}</p>`;
-  box.innerHTML += `<p>🤖 ${reply}</p>`;
-
-  speak(reply);
-      }
