@@ -1,14 +1,30 @@
-    let userName = "অজয়";
+let userName = "অজয়";
 
 let audioContext, analyser, dataArray;
-let talking = false;
 
-// 🗣️ Speak function
+let talking = false;
+let lastSoundTime = 0;
+let isSpeaking = false;
+
+// 👩 Female voice
 function speak(text) {
   if (talking) return;
 
   let msg = new SpeechSynthesisUtterance(text);
+
+  let voices = speechSynthesis.getVoices();
+
+  let femaleVoice = voices.find(v =>
+    v.name.toLowerCase().includes("female") ||
+    v.name.toLowerCase().includes("zira") ||
+    v.name.toLowerCase().includes("google")
+  );
+
+  if (femaleVoice) msg.voice = femaleVoice;
+
   msg.lang = "bn-BD";
+  msg.pitch = 1.5;
+  msg.rate = 1;
 
   talking = true;
   msg.onend = () => talking = false;
@@ -26,10 +42,10 @@ async function start() {
   let mic = audioContext.createMediaStreamSource(stream);
   mic.connect(analyser);
 
-  analyser.fftSize = 256;
+  analyser.fftSize = 512;
   dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-  speak(userName + ", শুরু করো দেখি আজ কী করো 😏");
+  speak(userName + ", শুরু করো... আমি judge করছি 😏");
 
   loop();
 }
@@ -49,71 +65,55 @@ function loop() {
   }
 
   let avg = sum / dataArray.length;
+  let now = Date.now();
 
-  let mood = "";
-  let text = "";
-
-  if (avg < 10) {
-    mood = "silent";
-    text = "🤫 কিছুই শুনছি না";
-  } 
-  else if (avg < 30) {
-    mood = "low";
-    text = "🔻 আস্তে গাইছো";
-  } 
-  else if (avg < 60) {
-    mood = "medium";
-    text = "🙂 ঠিক আছে";
-  } 
-  else {
-    mood = "high";
-    text = "🔥 জোরে গাইছো!";
+  // 🎤 detect sound
+  if (avg > 20) {
+    lastSoundTime = now;
+    isSpeaking = true;
   }
 
-  document.getElementById("live").innerText = text;
-
-  // 😂 Fun talk trigger
-  if (Math.random() > 0.95) funTalk(mood);
+  // ⏳ song end detect
+  if (isSpeaking && now - lastSoundTime > 2000) {
+    isSpeaking = false;
+    react(avg);
+  }
 
   requestAnimationFrame(loop);
 }
 
-// 😂 FUN + ROAST SYSTEM
-function funTalk(mood) {
+// 😂 SAVAGE REACTION
+function react(avg) {
   let reply = "";
 
-  if (mood === "silent") {
+  if (avg < 20) {
     let arr = [
-      userName + ", তুমি কি মনের মধ্যে গান গাইছো? 😆",
-      "এটা কি silent mode? 😂",
-      "আমি কিছুই শুনছি না 😅"
+      userName + ", তুমি গাইছিলে নাকি ভাবছিলে? 😆",
+      "আমি কিছুই শুনলাম না... imagination ছিল নাকি? 😂",
+      "এইটা গান না silent mode 😏",
+      "তুমি গাইলে আমি guess করলাম 😅"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
 
-  else if (mood === "low") {
+  else if (avg < 40) {
     let arr = [
-      userName + ", ঘুমাচ্ছো নাকি? 😴",
-      "এত আস্তে কেন? 😆",
-      "এইটা গান না whisper 😂"
+      userName + ", honestly... একটু struggle হলো শুনতে 😆",
+      "এইটা গান ছিলো... না test? 😏",
+      "practice দরকার... urgent 😄",
+      "কাকও চিন্তা করছে competition দিবে 🐦😂",
+      "confidence বেশি, skill একটু কম 😆"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
 
-  else if (mood === "medium") {
+  else {
     let arr = [
-      "মন্দ না 😄",
-      "চালিয়ে যাও 👍",
-      "practice করলে জমবে 🔥"
-    ];
-    reply = arr[Math.floor(Math.random()*arr.length)];
-  }
-
-  else if (mood === "high") {
-    let arr = [
-      userName + ", mic ফাটিয়ে দিবে নাকি 😂",
-      "পাশের লোক ভয় পেয়ে গেছে 😆",
-      "এই energy থাকলে concert করতে পারো 🔥"
+      "ওহ! আজ একটু impress করলে 🔥",
+      "এইটা ভালোই ছিল 😄",
+      "চালিয়ে যাও, improve হচ্ছে 👌",
+      "আজ singer vibe আসছে 😏",
+      "এইটা ঠিক ছিল... finally 😆"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
@@ -121,25 +121,25 @@ function funTalk(mood) {
   speak(reply);
 }
 
-// 💬 Chat system
+// 💬 Chat
 function chat() {
   let input = document.getElementById("input").value.toLowerCase();
   let reply = "";
 
-  if (input.includes("hello") || input.includes("hi")) {
-    reply = userName + ", হ্যালো! গান গাইবে? 😄";
+  if (input.includes("hello")) {
+    reply = userName + ", হ্যালো 😄";
   } 
   else if (input.includes("song")) {
-    reply = "গাও দেখি 🎤";
+    reply = "গাও দেখি... আমি ready 😏";
   }
   else if (input.includes("kemon")) {
-    reply = "তুমি চেষ্টা করছো, সেটাই বড় কথা 😄";
+    reply = "তুমি চেষ্টা করছো... সেটাই বড় কথা 😆";
   }
   else {
     let arr = [
-      "তুমি আজ funny mood-এ 😆",
-      "আমি ready 😏",
-      "চালিয়ে যাও 🔥"
+      "তুমি আজ interesting 😏",
+      "আমি judge করছি 😄",
+      "চালিয়ে যাও... surprise দাও 🔥"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
@@ -149,5 +149,4 @@ function chat() {
   box.innerHTML += `<p>🤖 ${reply}</p>`;
 
   speak(reply);
-}
-  
+      }
