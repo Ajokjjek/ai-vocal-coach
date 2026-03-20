@@ -1,5 +1,3 @@
-let userName = "Ajay";
-
 let audioContext, analyser, buffer;
 
 let isSinging = false;
@@ -8,11 +6,7 @@ let hasReplied = false;
 
 let pitchList = [];
 
-// 👩 female voice setup
-speechSynthesis.onvoiceschanged = () => {
-  speechSynthesis.getVoices();
-};
-
+// 👩 Female voice
 function speak(text) {
   if (speechSynthesis.speaking) return;
 
@@ -28,12 +22,12 @@ function speak(text) {
   if (female) msg.voice = female;
 
   msg.pitch = 1.5;
-  msg.lang = "en-US";  // 🔥 English language
+  msg.lang = "en-US";
 
   speechSynthesis.speak(msg);
 }
 
-// 🎤 start
+// 🎤 Start
 async function start() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -48,22 +42,22 @@ async function start() {
 
   buffer = new Float32Array(analyser.fftSize);
 
+  document.getElementById("status").innerText = "Listening...";
   loop();
 }
 
-// ⏹️ stop
+// ⏹️ Stop
 function stop() {
   if (audioContext) audioContext.close();
 }
 
-// 🔁 loop
+// 🔁 Loop
 function loop() {
   analyser.getFloatTimeDomainData(buffer);
 
   let pitch = detectPitch(buffer, audioContext.sampleRate);
   let now = Date.now();
 
-  // 🎤 detect singing
   if (pitch > 0) {
     pitchList.push(pitch);
     lastSoundTime = now;
@@ -71,7 +65,7 @@ function loop() {
     hasReplied = false;
   }
 
-  // ⏳ 2 sec silence = song finished
+  // ⏳ wait 2 sec after silence
   if (isSinging && now - lastSoundTime > 2000 && !hasReplied) {
     isSinging = false;
     hasReplied = true;
@@ -83,7 +77,7 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// 🎵 pitch detect
+// 🎵 Pitch detect
 function detectPitch(buf, sampleRate) {
   let SIZE = buf.length;
   let rms = 0;
@@ -116,43 +110,40 @@ function detectPitch(buf, sampleRate) {
   return sampleRate / bestOffset;
 }
 
-// 🎼 note + accuracy
-function freqToNote(freq) {
+// 🎼 Note detection
+function getNote(freq) {
   let A4 = 440;
   let noteNum = 12 * (Math.log(freq / A4) / Math.log(2));
   let midi = Math.round(noteNum) + 69;
 
   let notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-  let note = notes[midi % 12];
-
-  let exactFreq = A4 * Math.pow(2, (midi - 69) / 12);
-  let cents = 1200 * Math.log2(freq / exactFreq);
-
-  return { note, cents };
+  return notes[midi % 12];
 }
 
-// 📊 analyze (FINAL reply)
+// 📊 Analyze
 function analyze() {
   if (pitchList.length < 5) return;
 
   let avg = pitchList.reduce((a,b)=>a+b,0) / pitchList.length;
 
-  let { note, cents } = freqToNote(avg);
+  let note = getNote(avg);
 
   let reply = "";
 
-  // 🎯 honest judgement
-  if (Math.abs(cents) < 20) {
-    reply = "Good singing 😄 (Note: " + note + ")";
+  // 🎯 Honest judgement
+  if (avg < 150) {
+    reply = "That was bad. Your pitch was unstable.";
   } 
-  else if (Math.abs(cents) < 50) {
-    reply = "Not bad... but slightly off 😏";
+  else if (avg < 300) {
+    reply = "Not bad, but you were off pitch.";
   } 
   else {
-    reply = "That was bad 😆 your pitch was off";
+    reply = "Good singing. You were mostly on pitch.";
   }
 
-  reply += " | error: " + Math.round(cents) + " cents";
+  reply += " | Detected note: " + note;
+
+  document.getElementById("status").innerText = reply;
 
   speak(reply);
     }
