@@ -1,0 +1,86 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #1e1e1e, #000);
+  color: white;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  text-align: center;
+  padding: 20px;
+}
+
+h1 {
+  margin-top: 10px;
+}
+
+.subtitle {
+  color: #aaa;
+}
+
+.controls button {
+  padding: 12px 20px;
+  margin: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.controls button:first-child {
+  background: #ff4757;
+  color: white;
+}
+
+.controls button:last-child {
+  background: #57606f;
+  color: white;
+}
+
+.status-box {
+  margin-top: 20px;
+  padding: 20px;
+  background: #222;
+  border-radius: 12px;
+}
+
+#live {
+  font-size: 22px;
+}
+
+#feedback {
+  margin-top: 10px;
+  color: #ccc;
+}
+
+.chat {
+  margin-top: 30px;
+}
+
+.chat input {
+  padding: 10px;
+  width: 70%;
+  border-radius: 8px;
+  border: none;
+}
+
+.chat button {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+#chatBox {
+  margin-top: 15px;
+  text-align: left;
+}
+
+#chatBox p {
+  background: #333;
+  padding: 8px;
+  border-radius: 8px;
+  margin: 5px 0;
+  }
