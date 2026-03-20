@@ -2,9 +2,8 @@
 
 let audioContext, analyser, dataArray;
 let talking = false;
-let lastMood = "neutral";
 
-// 🗣️ Voice
+// 🗣️ Speak function
 function speak(text) {
   if (talking) return;
 
@@ -27,8 +26,8 @@ async function start() {
   let mic = audioContext.createMediaStreamSource(stream);
   mic.connect(analyser);
 
-  analyser.fftSize = 2048;
-  dataArray = new Float32Array(analyser.fftSize);
+  analyser.fftSize = 256;
+  dataArray = new Uint8Array(analyser.frequencyBinCount);
 
   speak(userName + ", শুরু করো দেখি আজ কী করো 😏");
 
@@ -42,73 +41,79 @@ function stop() {
 
 // 🔁 Loop
 function loop() {
-  analyser.getFloatTimeDomainData(dataArray);
+  analyser.getByteFrequencyData(dataArray);
 
-  let freq = autoCorrelate(dataArray, audioContext.sampleRate);
+  let sum = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    sum += dataArray[i];
+  }
 
+  let avg = sum / dataArray.length;
+
+  let mood = "";
   let text = "";
 
-  if (freq === -1) {
-    text = "🤔 কিছুই বুঝতে পারছি না";
-    lastMood = "confused";
+  if (avg < 10) {
+    mood = "silent";
+    text = "🤫 কিছুই শুনছি না";
   } 
-  else if (freq > 400) {
-    text = "🔺 অনেক high!";
-    lastMood = "high";
+  else if (avg < 30) {
+    mood = "low";
+    text = "🔻 আস্তে গাইছো";
   } 
-  else if (freq < 300) {
-    text = "🔻 অনেক low!";
-    lastMood = "low";
+  else if (avg < 60) {
+    mood = "medium";
+    text = "🙂 ঠিক আছে";
   } 
   else {
-    text = "✅ ভালো চলছে!";
-    lastMood = "good";
+    mood = "high";
+    text = "🔥 জোরে গাইছো!";
   }
 
   document.getElementById("live").innerText = text;
 
-  // 🔥 fun response trigger
-  if (Math.random() > 0.94) funResponse();
+  // 😂 Fun talk trigger
+  if (Math.random() > 0.95) funTalk(mood);
 
   requestAnimationFrame(loop);
 }
 
 // 😂 FUN + ROAST SYSTEM
-function funResponse() {
+function funTalk(mood) {
   let reply = "";
 
-  if (lastMood === "good") {
+  if (mood === "silent") {
     let arr = [
-      userName + ", এই তো! singer vibe 🔥",
-      "ওহ! আজ তো impress করছো 😄",
-      "দেখছি improvement হচ্ছে 👌"
+      userName + ", তুমি কি মনের মধ্যে গান গাইছো? 😆",
+      "এটা কি silent mode? 😂",
+      "আমি কিছুই শুনছি না 😅"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
 
-  else if (lastMood === "high") {
-    let arr = [
-      userName + ", চিৎকার না, গান 😆",
-      "মাইক না ভাঙলে ভালো 😏",
-      "এত high গেলে পাখিরাও ভয় পাবে 🐦😂"
-    ];
-    reply = arr[Math.floor(Math.random()*arr.length)];
-  }
-
-  else if (lastMood === "low") {
+  else if (mood === "low") {
     let arr = [
       userName + ", ঘুমাচ্ছো নাকি? 😴",
-      "এত আস্তে কেন? আমি শুনতেই পাচ্ছি না 😆",
+      "এত আস্তে কেন? 😆",
       "এইটা গান না whisper 😂"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
 
-  else {
+  else if (mood === "medium") {
     let arr = [
-      "এইটা কি ছিলো? 😆",
-      "কিছুই বুঝলাম না 😂",
-      "signal হারিয়ে গেছে মনে হয় 📡"
+      "মন্দ না 😄",
+      "চালিয়ে যাও 👍",
+      "practice করলে জমবে 🔥"
+    ];
+    reply = arr[Math.floor(Math.random()*arr.length)];
+  }
+
+  else if (mood === "high") {
+    let arr = [
+      userName + ", mic ফাটিয়ে দিবে নাকি 😂",
+      "পাশের লোক ভয় পেয়ে গেছে 😆",
+      "এই energy থাকলে concert করতে পারো 🔥"
     ];
     reply = arr[Math.floor(Math.random()*arr.length)];
   }
@@ -116,58 +121,33 @@ function funResponse() {
   speak(reply);
 }
 
-// 🎵 Pitch detect
-function autoCorrelate(buf, sampleRate) {
-  let SIZE = buf.length;
-  let rms = 0;
+// 💬 Chat system
+function chat() {
+  let input = document.getElementById("input").value.toLowerCase();
+  let reply = "";
 
-  for (let i = 0; i < SIZE; i++) {
-    rms += buf[i] * buf[i];
+  if (input.includes("hello") || input.includes("hi")) {
+    reply = userName + ", হ্যালো! গান গাইবে? 😄";
+  } 
+  else if (input.includes("song")) {
+    reply = "গাও দেখি 🎤";
+  }
+  else if (input.includes("kemon")) {
+    reply = "তুমি চেষ্টা করছো, সেটাই বড় কথা 😄";
+  }
+  else {
+    let arr = [
+      "তুমি আজ funny mood-এ 😆",
+      "আমি ready 😏",
+      "চালিয়ে যাও 🔥"
+    ];
+    reply = arr[Math.floor(Math.random()*arr.length)];
   }
 
-  rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return -1;
+  let box = document.getElementById("chatBox");
+  box.innerHTML += `<p>🧑 ${input}</p>`;
+  box.innerHTML += `<p>🤖 ${reply}</p>`;
 
-  let r1 = 0, r2 = SIZE - 1;
-
-  for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buf[i]) < 0.2) {
-      r1 = i;
-      break;
-    }
-  }
-
-  for (let i = 1; i < SIZE / 2; i++) {
-    if (Math.abs(buf[SIZE - i]) < 0.2) {
-      r2 = SIZE - i;
-      break;
-    }
-  }
-
-  buf = buf.slice(r1, r2);
-  SIZE = buf.length;
-
-  let c = new Array(SIZE).fill(0);
-
-  for (let i = 0; i < SIZE; i++) {
-    for (let j = 0; j < SIZE - i; j++) {
-      c[i] += buf[j] * buf[j + i];
-    }
-  }
-
-  let d = 0;
-  while (c[d] > c[d + 1]) d++;
-
-  let maxval = -1, maxpos = -1;
-
-  for (let i = d; i < SIZE; i++) {
-    if (c[i] > maxval) {
-      maxval = c[i];
-      maxpos = i;
-    }
-  }
-
-  let T0 = maxpos;
-
-  return sampleRate / T0;
-                           }
+  speak(reply);
+}
+  
