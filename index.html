@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajay AI Vocal Coach 🎤</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+  <h1>🎤 AI Singing Friend</h1>
+  <p class="subtitle">অজয়, গাও আমি শুনছি 😄</p>
+
+  <div class="controls">
+    <button onclick="start()">🎙️ Start</button>
+    <button onclick="stop()">⏹️ Stop</button>
+  </div>
+
+  <div class="status-box">
+    <h2 id="live">Ready...</h2>
+    <p id="feedback">Press Start to begin</p>
+  </div>
+
+  <div class="chat">
+    <h3>💬 Chat</h3>
+    <input id="input" placeholder="কিছু বলো..." />
+    <button onclick="chat()">Send</button>
+    <div id="chatBox"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
